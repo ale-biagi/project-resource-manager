@@ -51,8 +51,8 @@ class TestEndToEndStaffingFlow:
         self.all_tools = _load_all_mock_tools()
         assert len(self.all_tools) > 0
 
-    def test_mcp_mock_has_all_six_servers(self):
-        """Verify all 6 MCP servers are present in mcp-mock.json."""
+    def test_mcp_mock_has_all_seven_servers(self):
+        """Verify all 7 MCP servers are present in mcp-mock.json."""
         mock_path = Path(__file__).parent.parent / "mcp-mock.json"
         with open(mock_path) as f:
             mock_data = json.load(f)
@@ -62,7 +62,8 @@ class TestEndToEndStaffingFlow:
             "sap-s4-workforce-daily-availability",
             "sap-sf-skills-management",
             "sap-sf-employee-profile",
-            "sap-sf-employment-information"
+            "sap-sf-employment-information",
+            "sap-sf-time-off"
         ]
         for server in expected_servers:
             assert server in mock_data["servers"], f"Missing server: {server}"
@@ -90,6 +91,8 @@ class TestEndToEndStaffingFlow:
             assert "PAGE SIZE" in prompt or "pagination" in prompt.lower()
             assert "CONFIDENCE THRESHOLD" in prompt or "low-confidence" in prompt.lower()
             assert "CRITICAL" in prompt or "NEVER call" in prompt
+            assert "TIME-OFF" in prompt or "time-off" in prompt.lower(), "System prompt must include time-off conflict detection instructions"
+            assert "EmployeeTime" in prompt, "System prompt must reference EmployeeTime entity for time-off queries"
         except ImportError:
             pytest.skip("Agent module not available in test environment")
 
@@ -101,6 +104,8 @@ class TestEndToEndStaffingFlow:
         assert "name: resource-matching" in content
         assert "confidence" in content.lower()
         assert "rank" in content.lower()
+        assert "time-off" in content.lower(), "resource-matching skill must include time-off checks"
+        assert "EmployeeTime" in content, "resource-matching skill must reference EmployeeTime entity"
 
     def test_assignment_confirmation_skill_exists(self):
         """Verify the assignment-confirmation runtime skill exists and is well-formed."""
@@ -188,3 +193,49 @@ class TestEndToEndStaffingFlow:
         assert "achieved" in content, "Agent must log 'achieved' milestone outcomes"
         assert "missed" in content, "Agent must log 'missed' milestone outcomes"
         assert "tracer" in content, "Agent must use OpenTelemetry tracer"
+        assert "time-off" in content.lower() or "timeoff" in content.lower(), "Agent must log time-off data in M3 milestone"
+
+    def test_time_off_server_in_mock(self):
+        """Verify the time-off MCP server is present in mcp-mock.json with correct tools."""
+        mock_path = Path(__file__).parent.parent / "mcp-mock.json"
+        with open(mock_path) as f:
+            mock_data = json.load(f)
+        assert "sap-sf-time-off" in mock_data["servers"], "Time-off server must be in mcp-mock.json"
+        server = mock_data["servers"]["sap-sf-time-off"]
+        assert "list_employeetime_for_sfodata" in server["tools"], "Time-off server must have list_employeetime tool"
+
+    def test_time_off_mock_data_has_required_fields(self):
+        """Verify time-off mock records have all required fields for conflict detection."""
+        mock_path = Path(__file__).parent.parent / "mcp-mock.json"
+        with open(mock_path) as f:
+            mock_data = json.load(f)
+        records = mock_data["servers"]["sap-sf-time-off"]["tools"][
+            "list_employeetime_for_sfodata"
+        ]["mock_response"]["d"]["results"]
+        assert len(records) >= 1, "Must have at least one time-off record"
+        for record in records:
+            assert "userId" in record, "Time-off record must have userId"
+            assert "startDate" in record, "Time-off record must have startDate"
+            assert "endDate" in record, "Time-off record must have endDate"
+            assert "approvalStatus" in record, "Time-off record must have approvalStatus"
+            assert "timeType" in record, "Time-off record must have timeType"
+            assert "quantityInDays" in record, "Time-off record must have quantityInDays"
+
+    def test_time_off_conflict_detection_data(self):
+        """Verify mock data includes employees with time-off that can conflict with projects."""
+        mock_path = Path(__file__).parent.parent / "mcp-mock.json"
+        with open(mock_path) as f:
+            mock_data = json.load(f)
+        # Get time-off records
+        timeoff_records = mock_data["servers"]["sap-sf-time-off"]["tools"][
+            "list_employeetime_for_sfodata"
+        ]["mock_response"]["d"]["results"]
+        # Get availability employee IDs
+        avail_records = mock_data["servers"]["sap-s4-workforce-daily-availability"]["tools"][
+            "list_timeoverviewset_for_shcm_api_manage_wf_availability"
+        ]["mock_response"]["d"]["results"]
+        avail_emp_ids = {r["Personworkagreementexternalid"] for r in avail_records}
+        # At least one time-off record should be for an employee who also appears in availability
+        timeoff_emp_ids = {r["userId"] for r in timeoff_records}
+        overlap = avail_emp_ids & timeoff_emp_ids
+        assert len(overlap) >= 1, "At least one employee must appear in both availability and time-off data for conflict testing"

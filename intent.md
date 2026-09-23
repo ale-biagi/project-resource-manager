@@ -4,7 +4,7 @@ AI Agent for resolving resource capacity gaps across SAP S/4HANA Cloud and SAP S
 
 ## Business challenge
 
-Project managers and resource managers struggle to fill resource capacity gaps efficiently. The current process of tracking active projects, identifying open resource requirements, checking employee availability and skills, matching candidates, and executing assignments is manual, fragmented across SAP S/4HANA Cloud and SAP SuccessFactors, and takes up to 3 days per gap. An AI Agent is needed to automate this end-to-end staffing workflow with human-in-the-loop confirmation before any assignment is executed.
+Project managers and resource managers struggle to fill resource capacity gaps efficiently. The current process of tracking active projects, identifying open resource requirements, checking employee availability and skills, matching candidates, and executing assignments is manual, fragmented across SAP S/4HANA Cloud and SAP SuccessFactors, and takes up to 3 days per gap. Critically, the current process does not account for employee time-off and leave data when recommending candidates, leading to assignments of employees who are partially or fully unavailable during the project timeline. An AI Agent is needed to automate this end-to-end staffing workflow — including time-off conflict detection — with human-in-the-loop confirmation before any assignment is executed. The agent must recommend only candidates who are fully available (no time-off conflicts) during the project's timeline.
 
 ## Business Goals & Success Criteria
 
@@ -18,9 +18,9 @@ Project managers and resource managers struggle to fill resource capacity gaps e
     
 2.  **Resource Requirements Identified** — Agent queries and surfaces open resource demands per project and activities.
     
-3.  **Employee Availability and Skills Queried** — Agent retrieves relevant employee availability and skill profiles from SAP SuccessFactors.
+3.  **Employee Availability, Skills, and Time-Off Queried** — Agent retrieves employee availability from SAP S/4HANA Cloud, skill profiles from SAP SuccessFactors, and time-off/leave records from SAP SuccessFactors. Employees with time-off conflicts during the project timeline are filtered out.
     
-4.  **Best-Fit Candidates Proposed** — Agent cross-references demand and supply data and presents ranked candidate recommendations with justification.
+4.  **Best-Fit Candidates Proposed** — Agent cross-references demand, supply, skills, and time-off data, then presents ranked candidate recommendations (only fully available employees) with justification.
     
 5.  **Resource Assignment Executed** — Upon project manager / resource manager confirmation, agent writes the assignment back to SAP S/4HANA Cloud.
 
@@ -50,6 +50,7 @@ The challenge maps to the "Initiate Projects" sub-process within the "Order to F
 | Manage active projects | SAP S/4HANA Cloud Public Edition — Project Scope and Structure Management (SC1518) | `sap.s4:apiResource:CE_PROJDEMANDSOURCEOFSUPPLY_0001:v1` | — | — | — | — | No | Standard project management available in S/4HANA Cloud |
 | Retrieve open resource requirements | SAP Project and Resource Management (SC1498); S/4HANA Cloud | `sap.s4:apiResource:API_PROJECTDEMAND_0001:v1` | — | — | — | — | No | Project Demand API covers open requirements |
 | Check employee availability | SAP S/4HANA Cloud — Workforce Daily Availability | `sap.s4:apiResource:API_MANAGE_WF_AVAILABILITY:v1` | — | — | — | — | No | Availability API available in S/4HANA Cloud |
+| Check employee time-off / leave data | SAP SuccessFactors — Time Off (ECTimeOff) | `sap.sf:apiResource:ECTimeOff:v1` | — | — | — | — | No | OData API provides approved time-off records (dates, durations) for conflict detection against project timelines |
 | Check employee skills | SAP SuccessFactors — Skills Management (ECSkillsManagement) | `sap.sf:apiResource:ECSkillsManagement:v1` | — | — | — | — | No | Skills data available via SuccessFactors API |
 | Retrieve employee profile / employment info | SAP SuccessFactors — Employee Profile, Employment Information | `sap.sf:apiResource:ECEmployeeProfile:v1`, `sap.sf:apiResource:ECEmploymentInformation:v1` | — | — | — | — | No | Standard SuccessFactors APIs available |
 | Propose best-fit candidates (AI reasoning) | No standard product | — | — | — | — | — | Yes | No pre-built AI candidate matching layer; requires custom AI Agent with cross-system reasoning |
@@ -58,9 +59,11 @@ The challenge maps to the "Initiate Projects" sub-process within the "Order to F
 
 ### Key findings
 
--   SAP S/4HANA Cloud and SAP SuccessFactors together cover all data needs (project demand, workforce availability, skills, employee profiles) via standard OData APIs.
+-   SAP S/4HANA Cloud and SAP SuccessFactors together cover all data needs (project demand, workforce availability, skills, employee profiles, and time-off/leave records) via standard OData APIs.
     
 -   No MCP servers are pre-deployed for these APIs — MCP translation files must be generated from API specs (EDMX / OpenAPI) for agent tool use.
+    
+-   Employee time-off data from SAP SuccessFactors (`sap.sf:apiResource:ECTimeOff:v1`) must be checked against the project timeline to filter out employees with leave conflicts before candidate ranking.
     
 -   The AI reasoning layer for cross-system candidate matching is a clear gap not covered by standard products — a custom Python AI Agent (A2A protocol) is required.
     
@@ -88,11 +91,13 @@ Build a pro-code Python AI Agent (A2A protocol) that orchestrates the full resou
     
 3.  Fetches employee skills and profiles from SAP SuccessFactors (Skills Management, Employee Profile, Employment Information APIs).
     
-4.  Uses AI reasoning to cross-reference demand with supply and rank the best-fit candidates with clear justification per gap.
+4.  Retrieves employee time-off/leave records from SAP SuccessFactors (Time Off API) and filters out employees with time-off conflicts during the project timeline.
     
-5.  Presents recommendations to the project manager / resource manager and waits for confirmation (human in the loop).
+5.  Uses AI reasoning to cross-reference demand with supply, availability, skills, and time-off data — ranking only fully available best-fit candidates with clear justification per gap.
     
-6.  Upon confirmation, executes the resource assignment by writing back to SAP S/4HANA Cloud via the Resource Assignment Source OData API.
+6.  Presents recommendations to the project manager / resource manager and waits for confirmation (human in the loop).
+    
+7.  Upon confirmation, executes the resource assignment by writing back to SAP S/4HANA Cloud via the Resource Assignment Source OData API.
     
 
 All SAP APIs are integrated via MCP translation files (generated from EDMX/OpenAPI specs) that expose each API as an agent tool.
@@ -130,7 +135,7 @@ Since no pre-deployed MCP servers exist for these APIs, MCP translation files mu
 
 ##### Cross-system data consistency
 
-Employee availability lives in S/4HANA Cloud while skills live in SuccessFactors — the agent must handle cases where data is inconsistent or incomplete across systems.
+Employee availability lives in S/4HANA Cloud while skills and time-off records live in SuccessFactors — the agent must handle cases where data is inconsistent or incomplete across systems, and must reconcile workforce daily availability with approved time-off periods.
 
 #### Recommended solution category
 
@@ -138,4 +143,4 @@ AI Agent
 
 #### Intent fit
 
-92%
+95%

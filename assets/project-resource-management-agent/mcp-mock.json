@@ -773,6 +773,98 @@
           "mock_response": { "d": { "results": [] } }
         }
       }
+    },
+    "sap-sf-time-off": {
+      "mcp_server_name": "sap.mcp/sfodata_timeoff",
+      "description": "MCP server for the SAP SuccessFactors Time Off API — provides approved time-off/leave records with dates and durations for conflict detection against project timelines.",
+      "tools": {
+        "list_employeetime_for_sfodata": {
+          "description": "Retrieve employee time-off/leave records including leave type, start/end dates, duration, and approval status.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "filter": { "type": "string", "description": "OData filter (e.g. userId eq 'EMP001' and startDate ge datetime'2025-01-01T00:00:00' and approvalStatus eq 'APPROVED')" },
+              "select": { "type": "string" },
+              "top": { "type": "string" },
+              "orderby": { "type": "string" }
+            },
+            "required": []
+          },
+          "mock_response": {
+            "d": {
+              "results": [
+                {
+                  "externalCode": "TO-001",
+                  "userId": "EMP001",
+                  "timeType": "VACATION",
+                  "startDate": "/Date(1740787200000)/",
+                  "endDate": "/Date(1741219200000)/",
+                  "quantityInDays": 5.0,
+                  "quantityInHours": 40.0,
+                  "approvalStatus": "APPROVED",
+                  "undeterminedEndDate": false,
+                  "loaStartJobInfoId": null,
+                  "comment": "Annual leave"
+                },
+                {
+                  "externalCode": "TO-002",
+                  "userId": "EMP003",
+                  "timeType": "VACATION",
+                  "startDate": "/Date(1743465600000)/",
+                  "endDate": "/Date(1744156800000)/",
+                  "quantityInDays": 8.0,
+                  "quantityInHours": 64.0,
+                  "approvalStatus": "APPROVED",
+                  "undeterminedEndDate": false,
+                  "loaStartJobInfoId": null,
+                  "comment": "Extended vacation"
+                },
+                {
+                  "externalCode": "TO-003",
+                  "userId": "EMP003",
+                  "timeType": "SICK_LEAVE",
+                  "startDate": "/Date(1746144000000)/",
+                  "endDate": "/Date(1746316800000)/",
+                  "quantityInDays": 2.0,
+                  "quantityInHours": 16.0,
+                  "approvalStatus": "APPROVED",
+                  "undeterminedEndDate": false,
+                  "loaStartJobInfoId": null,
+                  "comment": null
+                }
+              ]
+            }
+          }
+        },
+        "get_employeetime_by_key_for_sfodata": {
+          "description": "Retrieve a single employee time-off record by external code and user ID.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "externalCode": { "type": "string", "description": "Time-off record external code" },
+              "userId": { "type": "string", "description": "Employee user ID" }
+            },
+            "required": ["externalCode"]
+          },
+          "mock_response": {
+            "d": {
+              "externalCode": "TO-001",
+              "userId": "EMP001",
+              "timeType": "VACATION",
+              "startDate": "/Date(1740787200000)/",
+              "endDate": "/Date(1741219200000)/",
+              "quantityInDays": 5.0,
+              "quantityInHours": 40.0,
+              "approvalStatus": "APPROVED"
+            }
+          }
+        },
+        "get_metadata_sfodata_timeoff": {
+          "description": "Get metadata of the Time Off OData service.",
+          "input_schema": { "type": "object", "properties": {}, "required": [] },
+          "mock_response": { "metadata": "<xml>sfodata_timeoff $metadata</xml>" }
+        }
+      }
     }
   },
   "metadata": {
@@ -780,16 +872,17 @@
     "created_for_agent": "project-resource-management-agent",
     "mock_mode": true,
     "deterministic": true,
-    "total_servers": 6,
-    "total_tools": 33,
+    "total_servers": 7,
+    "total_tools": 36,
     "generated_from": [
       "assets/sap-s4-project-demand-mcp-server/mcp-translation/translation.json",
       "assets/sap-s4-resource-assignment-source-mcp-server/mcp-translation/translation.json",
       "assets/sap-s4-workforce-daily-availability-mcp-server/mcp-translation/translation.json",
       "assets/sap-sf-skills-management-mcp-server/mcp-translation/translation.json",
       "assets/sap-sf-employee-profile-mcp-server/mcp-translation/translation.json",
-      "assets/sap-sf-employment-information-mcp-server/mcp-translation/translation.json"
+      "assets/sap-sf-employment-information-mcp-server/mcp-translation/translation.json",
+      "assets/sap-sf-time-off-mcp-server/mcp-translation/translation.json"
     ],
-    "generation_date": "2025-09-21"
+    "generation_date": "2026-09-23"
   }
 }

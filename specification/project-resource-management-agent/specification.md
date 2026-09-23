@@ -22,9 +22,9 @@
 This agent requires two runtime skills for complex multi-step workflows:
 
 - [x] Create `assets/project-resource-management-agent/app/skills/resource-matching/SKILL.md` with:
-  - Frontmatter: `name: resource-matching`, `description: Multi-step workflow for cross-referencing project demands with employee availability and skills from S/4HANA Cloud and SuccessFactors to propose ranked best-fit candidates`
-  - Step-by-step instructions for: (1) extracting required role/skills from project demand, (2) filtering availability data by date window, (3) cross-referencing SF skills per available employee, (4) scoring candidates by skills match + availability alignment + employment status, (5) formatting ranked output with written justification per candidate, (6) flagging low-confidence recommendations when fewer than 2 of 3 criteria are available
-  - Include table: confidence levels based on data completeness (all 3 criteria = high, 2 = medium, 1 = low)
+  - Frontmatter: `name: resource-matching`, `description: Multi-step workflow for cross-referencing project demands with employee availability, time-off records, and skills from S/4HANA Cloud and SuccessFactors to propose ranked best-fit candidates who are fully available during the project timeline`
+  - Step-by-step instructions for: (1) extracting required role/skills from project demand, (2) filtering availability data by date window, (3) retrieving time-off/leave records from SuccessFactors and filtering out employees with approved time-off overlapping the project timeline, (4) cross-referencing SF skills per available employee, (5) scoring candidates by skills match + availability alignment + time-off clearance + employment status, (6) formatting ranked output with written justification per candidate (including time-off clearance confirmation), (7) flagging low-confidence recommendations when fewer than 2 of 4 criteria are available
+  - Include table: confidence levels based on data completeness (all 4 criteria = high, 3 = medium, 2 or fewer = low)
 
 - [x] Create `assets/project-resource-management-agent/app/skills/assignment-confirmation/SKILL.md` with:
   - Frontmatter: `name: assignment-confirmation`, `description: Human-in-the-loop confirmation gate for resource assignment — must obtain explicit yes/no confirmation before calling the assignment API`
@@ -49,7 +49,13 @@ This agent requires two runtime skills for complex multi-step workflows:
 
 - [ ] Implement system prompt instruction directing the agent to use the `TimeOverviewSet` entity from the Workforce Daily Availability MCP tool, filtering by date range derived from resource demand dates, returning employee work agreement ID, planned working hours, absence hours, and non-working day flag per calendar date
 - [ ] System prompt must instruct agent to aggregate daily availability into weekly/total capacity for a given time window before presenting to user
-- [ ] Milestone M3 instrumentation (partial — combined with skills retrieval): log `M3.achieved: employee data retrieved — {count} employees with availability; SuccessFactors skills data: {available|partial|unavailable}` when both availability and skills queries complete; log `M3.missed: employee availability or skills data retrieval failed; agent proceeding with partial data — user notified` when either fails
+- [ ] Milestone M3 instrumentation (partial — combined with skills and time-off retrieval): log `M3.achieved: employee data retrieved — {count} employees with availability; SuccessFactors skills data: {available|partial|unavailable}; time-off data: {available|partial|unavailable}; {filtered_count} employees excluded due to time-off conflicts` when all queries complete; log `M3.missed: employee availability, skills, or time-off data retrieval failed; agent proceeding with partial data — user notified` when any fails
+
+### REQ-03a — Check Employee Time-Off / Leave Data
+
+- [ ] Implement system prompt instruction directing the agent to use the `EmployeeTime` entity from the SF Time Off MCP tool, filtering by the project's required date range, retrieving approved time-off records including `timeType`, `startDate`, `endDate`, `quantityInDays`, and `approvalStatus` per employee
+- [ ] System prompt must instruct agent to compare each candidate's approved time-off dates against the project timeline: if any approved leave overlaps the required date range, exclude the employee from the recommendation list or flag them as partially unavailable with the conflict dates shown
+- [ ] System prompt must handle the case where time-off data is unavailable for an employee: flag with `[Time-off data unavailable — availability unconfirmed]` but do not exclude the candidate silently
 
 ### REQ-04 — Retrieve Employee Skills and Profiles
 
@@ -60,8 +66,9 @@ This agent requires two runtime skills for complex multi-step workflows:
 ### REQ-05 — Propose Best-Fit Candidates with Justification
 
 - [ ] Implement system prompt instruction to load the `resource-matching` skill when the user requests candidate recommendations, and apply the matching logic from that skill
-- [ ] System prompt must instruct agent to: rank up to 3 candidates per demand, write justification covering (1) skills match percentage, (2) availability window alignment, (3) job profile relevance; flag low-confidence candidates explicitly
-- [ ] System prompt must state: if no suitable candidates are found, report this clearly with the reason (no availability, no matching skills, no profile data) rather than recommending a poor fit
+- [ ] System prompt must instruct agent to: rank up to 3 candidates per demand, write justification covering (1) skills match percentage, (2) availability window alignment, (3) time-off clearance (confirm no leave conflicts during project timeline), (4) job profile relevance; flag low-confidence candidates explicitly
+- [ ] System prompt must state: if a candidate has approved time-off overlapping the project timeline, exclude them from the ranked list entirely
+- [ ] System prompt must state: if no suitable candidates are found (no availability, no matching skills, no profile data, or all candidates have time-off conflicts), report this clearly with the reason rather than recommending a poor fit
 - [ ] Milestone M4 instrumentation: log `M4.achieved: candidate recommendations presented — {count} candidates proposed for demand {demand_id}` on success; log `M4.missed: no suitable candidates found for demand {demand_id}; user notified with reasons` on failure
 
 ### REQ-06 — Human-in-the-Loop Confirmation Gate
@@ -89,7 +96,7 @@ This agent requires two runtime skills for complex multi-step workflows:
 - [ ] Add prompt section: `"Data Integrity: You MUST use tools to retrieve live data from SAP S/4HANA Cloud and SAP SuccessFactors. Never fabricate, guess, or invent employee names, availability, skills, or project data."` 
 - [ ] Add prompt section: `"Graceful Degradation: If data from one system (S/4HANA Cloud or SuccessFactors) is unavailable, communicate this clearly and continue with partial data rather than failing silently. Always tell the user what data is missing."`
 - [ ] Add prompt section: `"Page Size: When calling tools that support pagination, always set the page size parameter (top, limit, pageSize, etc.) to a maximum of 100 items to prevent context overflow. Inform the user when this limit is applied."`
-- [ ] Add prompt section: `"Confidence Threshold: If fewer than 2 of the 3 criteria (availability, skills, employment profile) are available for a candidate, flag the recommendation as low-confidence and communicate the missing data to the user."`
+- [ ] Add prompt section: `"Confidence Threshold: If fewer than 2 of the 4 criteria (availability, skills, employment profile, time-off clearance) are available for a candidate, flag the recommendation as low-confidence and communicate the missing data to the user."`
 
 ---
 
@@ -105,15 +112,16 @@ This agent requires two runtime skills for complex multi-step workflows:
 
 > Read [guidelines-agent-mcp.md](../guidelines-agent-mcp.md) — Path A applies: API spec files exist, no pre-deployed MCP servers.
 
-- [ ] Verify `specification/project-resource-management-agent/api-specs/` contains all 6 EDMX files:
+- [ ] Verify `specification/project-resource-management-agent/api-specs/` contains all 7 EDMX files:
   - `project-demand.edmx` (ORD ID: `sap.s4:apiResource:API_PROJECTDEMAND_0001:v1`) — Project Demand API: active projects, open resource requirements
   - `resource-assignment-source.edmx` (ORD ID: `sap.s4:apiResource:CE_PROJDEMANDSOURCEOFSUPPLY_0001:v1`) — Resource Assignment Source API: write-back of confirmed assignments
   - `workforce-daily-availability.edmx` (ORD ID: `sap.s4:apiResource:API_MANAGE_WF_AVAILABILITY:v1`) — Workforce Daily Availability API: employee availability by date
   - `sf-skills-management.edmx` (ORD ID: `sap.sf:apiResource:ECSkillsManagement:v1`) — SuccessFactors Skills Management: skill profiles and ratings
   - `sf-employee-profile.edmx` (ORD ID: `sap.sf:apiResource:ECEmployeeProfile:v1`) — SuccessFactors Employee Profile: background and education
   - `sf-employment-information.edmx` (ORD ID: `sap.sf:apiResource:ECEmploymentInformation:v1`) — SuccessFactors Employment Information: job title, department, location
+  - `sf-time-off.edmx` (ORD ID: `sap.sf:apiResource:ECTimeOff:v1`) — SuccessFactors Time Off: approved time-off/leave records with dates and durations for conflict detection
 
-- [ ] Invoke `mcp-translation-file` skill for each of the 6 API spec files to generate MCP translation cards in `specification/project-resource-management-agent/mcps/<api-spec-stem>/`
+- [ ] Invoke `mcp-translation-file` skill for each of the 7 API spec files to generate MCP translation cards in `specification/project-resource-management-agent/mcps/<api-spec-stem>/`
 
 - [ ] Invoke `setup-solution` skill to create MCP server assets for all generated translation files
 
@@ -137,8 +145,9 @@ This agent requires two runtime skills for complex multi-step workflows:
   - `test_get_employee_skills.py` — mock SF Skills Management MCP, assert skill profiles and proficiency levels returned
   - `test_get_employee_profile.py` — mock SF Employee Profile MCP, assert profile data returned
   - `test_get_employment_info.py` — mock SF Employment Information MCP, assert job title, department, location returned
+  - `test_get_employee_timeoff.py` — mock SF Time Off MCP, assert approved time-off records returned with dates and durations; assert employees with time-off overlapping project timeline are excluded from recommendations
   - `test_create_resource_assignment.py` — mock Resource Assignment Source MCP, assert assignment created only when confirmation is recorded; assert it is NOT called without confirmation
-- [ ] Write one integration test `test_end_to_end_staffing_flow.py` — simulate full conversation: list projects → get demands → get availability → get skills → propose candidates → confirm → execute assignment; mock LLM responses and all MCP tool responses; test must run offline
+- [ ] Write one integration test `test_end_to_end_staffing_flow.py` — simulate full conversation: list projects → get demands → get availability → get time-off → get skills → propose candidates (verify time-off filtered) → confirm → execute assignment; mock LLM responses and all MCP tool responses; test must run offline
 - [ ] Run `pytest` from `assets/project-resource-management-agent/` (no args); if coverage < 70%, add tests until threshold met
 - [ ] Verify `assets/project-resource-management-agent/app/agent.py` has exactly 9 decorated functions — run `grep -c "^@agent_model\|^@agent_config\|^@prompt_section" assets/project-resource-management-agent/app/agent.py` and confirm it returns 9
 - [ ] Run final `pytest` (no args) to generate `test_report.json`

@@ -52,8 +52,8 @@ async def _run_agent_with_instrumentation(
 
         # M3: Employee Data
         with tracer.start_as_current_span("M3.retrieve-employee-data"):
-            if "availab" in query.lower() or "skill" in query.lower() or "employee" in query.lower():
-                logger.info("M3.started: attempting to retrieve employee availability and skills")
+            if "availab" in query.lower() or "skill" in query.lower() or "employee" in query.lower() or "time-off" in query.lower() or "leave" in query.lower():
+                logger.info("M3.started: attempting to retrieve employee availability, skills, and time-off data")
 
         # M4: Candidate Recommendations
         with tracer.start_as_current_span("M4.propose-candidates"):
@@ -107,10 +107,16 @@ def _log_milestone_outcomes(query: str, response: str) -> None:
             sf_status = "available"
         elif "partial" in resp_lower:
             sf_status = "partial"
+        timeoff_status = "unavailable"
+        if "time-off" in resp_lower or "time off" in resp_lower or "leave" in resp_lower:
+            timeoff_status = "available"
+        filtered_count = "0"
+        if "excluded" in resp_lower and "time-off" in resp_lower:
+            filtered_count = "some"
         if "no availability" in resp_lower or "unavailable" in resp_lower:
-            logger.info("M3.missed: employee availability or skills data retrieval failed; agent proceeding with partial data — user notified")
+            logger.info("M3.missed: employee availability, skills, or time-off data retrieval failed; agent proceeding with partial data — user notified")
         else:
-            logger.info("M3.achieved: employee data retrieved — employees with availability; SuccessFactors skills data: %s", sf_status)
+            logger.info("M3.achieved: employee data retrieved — employees with availability; SuccessFactors skills data: %s; time-off data: %s; %s employees excluded due to time-off conflicts", sf_status, timeoff_status, filtered_count)
 
     # M4: Candidate Recommendations
     if "candidate" in query.lower() or "recommend" in query.lower():
@@ -243,7 +249,7 @@ def get_summarization_model_name() -> str:
     validation={"format": "markdown", "max_length": 5000},
 )
 def get_system_prompt() -> str:
-    base_prompt = """You are an AI agent that helps project managers resolve resource capacity gaps by querying active projects and open demands from SAP S/4HANA Cloud, retrieving employee availability and skills from SAP SuccessFactors, proposing ranked best-fit candidates with justification, and executing confirmed resource assignments. Help users with their requests.\n\nIMPORTANT: You MUST use tools to retrieve live data from SAP S/4HANA Cloud and SAP SuccessFactors. Never fabricate, guess, or invent employee names, availability, skills, or project data. Relay tool errors verbatim without adding suggestions.\n\nDATA INTEGRITY: You MUST use tools to retrieve live data. Never fabricate, guess, or invent employee names, availability, skills, or project data.\n\nGRACEFUL DEGRADATION: If data from one system (S/4HANA Cloud or SuccessFactors) is unavailable, communicate this clearly and continue with partial data rather than failing silently. Always tell the user what data is missing.\n\nPAGE SIZE: When calling tools that support pagination, always set the page size parameter (top, limit, pageSize, etc.) to a maximum of 100 items to prevent context overflow. Inform the user when this limit is applied.\n\nCONFIDENCE THRESHOLD: If fewer than 2 of the 3 criteria (availability, skills, employment profile) are available for a candidate, flag the recommendation as low-confidence and communicate the missing data to the user.\n\nCRITICAL: NEVER call the resource assignment tool (create_resource_assignment or equivalent) without first receiving an explicit Yes confirmation from the user in the current conversation turn. If the user says No, cancel the assignment and offer to re-run recommendations.\n\nWhen listing active projects, use the A_ProjectDemand entity and filter by active status. When retrieving resource demands, use A_ProjectDemandResource and A_ProjectDemandResourceRequest entities. When checking availability, use TimeOverviewSet. When retrieving skills, use SkillProfile and RatedSkillMapping entities. When proposing candidates, load the resource-matching skill. When executing assignments, load the assignment-confirmation skill first.""" + _DEFENSIVE_PROMPT_SUFFIX
+    base_prompt = """You are an AI agent that helps project managers resolve resource capacity gaps by querying active projects and open demands from SAP S/4HANA Cloud, retrieving employee availability, time-off records, and skills from SAP S/4HANA Cloud and SAP SuccessFactors, proposing ranked best-fit candidates (only those fully available with no time-off conflicts) with justification, and executing confirmed resource assignments. Help users with their requests.\n\nIMPORTANT: You MUST use tools to retrieve live data from SAP S/4HANA Cloud and SAP SuccessFactors. Never fabricate, guess, or invent employee names, availability, skills, time-off records, or project data. Relay tool errors verbatim without adding suggestions.\n\nDATA INTEGRITY: You MUST use tools to retrieve live data. Never fabricate, guess, or invent employee names, availability, skills, time-off records, or project data.\n\nGRACEFUL DEGRADATION: If data from one system (S/4HANA Cloud or SuccessFactors) is unavailable, communicate this clearly and continue with partial data rather than failing silently. Always tell the user what data is missing.\n\nPAGE SIZE: When calling tools that support pagination, always set the page size parameter (top, limit, pageSize, etc.) to a maximum of 100 items to prevent context overflow. Inform the user when this limit is applied.\n\nTIME-OFF CONFLICT DETECTION: Before recommending any candidate, you MUST check their time-off/leave records from SAP SuccessFactors using the EmployeeTime entity. Filter by the project's required date range and check for approved time-off. If an employee has approved time-off overlapping the project timeline, EXCLUDE them from the recommendation list. If time-off data is unavailable for an employee, flag with [Time-off data unavailable — availability unconfirmed] but do not exclude them silently. Always report how many employees were filtered out due to time-off conflicts.\n\nCONFIDENCE THRESHOLD: If fewer than 2 of the 4 criteria (availability, time-off clearance, skills, employment profile) are available for a candidate, flag the recommendation as low-confidence and communicate the missing data to the user.\n\nCRITICAL: NEVER call the resource assignment tool (create_resource_assignment or equivalent) without first receiving an explicit Yes confirmation from the user in the current conversation turn. If the user says No, cancel the assignment and offer to re-run recommendations.\n\nWhen listing active projects, use the A_ProjectDemand entity and filter by active status. When retrieving resource demands, use A_ProjectDemandResource and A_ProjectDemandResourceRequest entities. When checking availability, use TimeOverviewSet. When checking time-off, use the EmployeeTime entity from the SF Time Off tool filtering by the project date range and approved status. When retrieving skills, use SkillProfile and RatedSkillMapping entities. When proposing candidates, load the resource-matching skill. When executing assignments, load the assignment-confirmation skill first.""" + _DEFENSIVE_PROMPT_SUFFIX
     custom_resistance = get_injection_resistance()
     if custom_resistance:
         base_prompt += f"\n\n## Agent-Specific Security Guidelines\n{custom_resistance}"

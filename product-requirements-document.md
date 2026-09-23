@@ -1,14 +1,14 @@
 # Product Requirements Document (PRD)
 
-**Title:** Project Resource Management AI Agent **Date:** 2026-09-21 **Owner:** Project / Resource Management Team **Solution Category:** AI Agent
+**Title:** Project Resource Management AI Agent **Date:** 2026-09-23 **Owner:** Project / Resource Management Team **Solution Category:** AI Agent
 
 * * *
 
 ## Product Purpose & Value Proposition
 
-**Elevator Pitch:** Project managers and resource managers today spend up to 3 days manually searching for the right person to fill a resource gap — crossing between SAP S/4HANA Cloud for project data and SAP SuccessFactors for people data. This AI Agent automates the entire staffing workflow: it queries active projects, finds open demands, retrieves employee availability and skills, ranks the best-fit candidates with justification, and — once a manager confirms — executes the assignment directly in S/4HANA Cloud.
+**Elevator Pitch:** Project managers and resource managers today spend up to 3 days manually searching for the right person to fill a resource gap — crossing between SAP S/4HANA Cloud for project data and SAP SuccessFactors for people data. Critically, employee time-off and leave data is not considered, leading to assignments of employees who are partially or fully unavailable. This AI Agent automates the entire staffing workflow: it queries active projects, finds open demands, retrieves employee availability, skills, and time-off records, filters out employees with leave conflicts, ranks the best-fit fully-available candidates with justification, and — once a manager confirms — executes the assignment directly in S/4HANA Cloud.
 
-**Business Need:** Resource capacity gaps on projects are resolved manually today, requiring project managers to query multiple systems, compare data manually, and coordinate via email or meetings. This is slow, error-prone, and creates project delivery risk. A unified AI Agent that orchestrates these steps conversationally and intelligently is required.
+**Business Need:** Resource capacity gaps on projects are resolved manually today, requiring project managers to query multiple systems, compare data manually, and coordinate via email or meetings. Employee time-off data is not factored into the process, resulting in candidates being assigned who have approved leave during the project timeline. This is slow, error-prone, and creates project delivery risk. A unified AI Agent that orchestrates these steps — including time-off conflict detection — conversationally and intelligently is required.
 
 **Expected Value:** Reduce average time-to-fill a resource gap from 3 days to same day, freeing project managers from system navigation and enabling faster project execution.
 
@@ -18,7 +18,7 @@
     
 2.  Ensure all resource assignments are executed only after explicit manager confirmation (human-in-the-loop)
     
-3.  Deliver accurate, justified candidate recommendations based on real-time availability and skills data
+3.  Deliver accurate, justified candidate recommendations based on real-time availability, skills data, and time-off records — recommending only employees who are fully available during the project timeline
     
 
 * * *
@@ -235,6 +235,23 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
 -   **Priority Rank**: 3
     
 
+**REQ-03a: Check Employee Time-Off / Leave Data**
+
+-   **Problem to Solve**: Employee time-off and leave records reside in SAP SuccessFactors and are not considered when checking availability, leading to recommendations of employees who have approved leave during the project timeline.
+    
+-   **User Story**: As a project manager, I need the agent to retrieve employee time-off records from SuccessFactors and filter out employees with leave conflicts during the project's required dates so that only truly available candidates are recommended.
+    
+-   **Acceptance Criteria**:
+    
+    -   Given a project's required date range, when the agent queries SuccessFactors Time Off API, then it returns approved time-off records (leave type, start date, end date, duration) for each candidate.
+        
+    -   Given a candidate has approved time-off overlapping with the project timeline, when the agent performs matching, then that candidate is excluded from the recommendation list or flagged as partially unavailable with the conflict dates shown.
+        
+-   **Maps to Objective**: Objective 3
+    
+-   **Priority Rank**: 4
+    
+
 **REQ-04: Retrieve Employee Skills and Profiles**
 
 -   **Problem to Solve**: Skills data is in SuccessFactors and not visible alongside availability data, forcing manual cross-referencing.
@@ -247,22 +264,24 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
         
 -   **Maps to Objective**: Objective 1
     
--   **Priority Rank**: 4
+-   **Priority Rank**: 5
     
 
 **REQ-05: Propose Best-Fit Candidates with Justification**
 
--   **Problem to Solve**: Matching the right person to a resource gap requires complex manual comparison of availability, skills, and project context.
+-   **Problem to Solve**: Matching the right person to a resource gap requires complex manual comparison of availability, skills, time-off data, and project context.
     
--   **User Story**: As a project manager, I need the agent to propose a ranked list of best-fit candidates for each open resource requirement, with clear justification for each recommendation, so that I can make an informed staffing decision quickly.
+-   **User Story**: As a project manager, I need the agent to propose a ranked list of best-fit candidates for each open resource requirement, with clear justification for each recommendation, so that I can make an informed staffing decision quickly. Only candidates who are fully available (no time-off conflicts) during the project timeline should be recommended.
     
 -   **Acceptance Criteria**:
     
-    -   Given open resource requirements and employee availability/skills data, when the agent performs matching, then it returns a ranked list of candidates (minimum 1, up to 3) with a written explanation per candidate covering skills match, availability alignment, and any relevant context.
+    -   Given open resource requirements, employee availability, skills, and time-off data, when the agent performs matching, then it returns a ranked list of candidates (minimum 1, up to 3) with a written explanation per candidate covering skills match, availability alignment, time-off clearance, and any relevant context.
+        
+    -   Given a candidate has approved time-off overlapping the project timeline, then that candidate is excluded from the ranked list.
         
 -   **Maps to Objective**: Objectives 1 and 3
     
--   **Priority Rank**: 5
+-   **Priority Rank**: 6
     
 
 **REQ-06: Human-in-the-Loop Confirmation Gate**
@@ -279,7 +298,7 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
         
 -   **Maps to Objective**: Objective 2
     
--   **Priority Rank**: 6
+-   **Priority Rank**: 7
     
 
 **REQ-07: Execute Resource Assignment in S/4HANA Cloud**
@@ -296,7 +315,7 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
         
 -   **Maps to Objective**: Objectives 1 and 2
     
--   **Priority Rank**: 7
+-   **Priority Rank**: 8
     
 
 ### High-Want Requirements
@@ -359,11 +378,11 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
 
 ### Explainability
 
--   **Traceability**: Each candidate recommendation must include the data sources used (availability from S/4HANA, skills from SuccessFactors) and the reasoning applied.
+-   **Traceability**: Each candidate recommendation must include the data sources used (availability from S/4HANA, skills from SuccessFactors, time-off records from SuccessFactors) and the reasoning applied.
     
 -   **Decision Logging**: All agent actions — tool calls, recommendations, confirmations, and assignment executions — must be logged with timestamps and session IDs.
     
--   **Uncertainty Communication**: If data is missing or ambiguous (e.g., no skills data found in SuccessFactors), the agent must communicate this explicitly before presenting a recommendation.
+-   **Uncertainty Communication**: If data is missing or ambiguous (e.g., no skills data found in SuccessFactors, time-off records unavailable), the agent must communicate this explicitly before presenting a recommendation.
     
 
 * * *
@@ -376,7 +395,7 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
 
 -   **Python AI Agent (A2A)**: Core reasoning and orchestration layer; manages conversation, tool invocation, candidate ranking, and confirmation flow
     
--   **MCP Translation Files (×5)**: Generated from EDMX/OpenAPI specs; expose each SAP API as a typed tool the agent can call
+-   **MCP Translation Files (x6)**: Generated from EDMX/OpenAPI specs; expose each SAP API as a typed tool the agent can call
     
     -   Project Demand MCP tool (`sap.s4:apiResource:API_PROJECTDEMAND_0001:v1`)
         
@@ -387,6 +406,8 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
     -   SuccessFactors Skills Management MCP tool (`sap.sf:apiResource:ECSkillsManagement:v1`)
         
     -   SuccessFactors Employee Profile & Employment Information MCP tools (`sap.sf:apiResource:ECEmployeeProfile:v1`, `sap.sf:apiResource:ECEmploymentInformation:v1`)
+        
+    -   SuccessFactors Time Off MCP tool (`sap.sf:apiResource:ECTimeOff:v1`)
         
 -   **SAP Generative AI Hub**: LLM backend (GPT-4o or equivalent) for candidate matching reasoning and justification generation
     
@@ -399,7 +420,7 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
 
 -   S/4HANA Cloud OData APIs: read project demands, workforce availability; write resource assignments (bidirectional)
     
--   SuccessFactors OData APIs: read employee profiles, skills, employment information (read-only)
+-   SuccessFactors OData APIs: read employee profiles, skills, employment information, and time-off/leave records (read-only)
     
 
 **Deployment Environments:**
@@ -438,6 +459,10 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
     
 -   Fetching employee skills and profiles from SuccessFactors
     
+-   Fetching employee time-off/leave records from SuccessFactors
+    
+-   Filtering out employees with time-off conflicts during the project timeline
+    
 -   Generating and presenting candidate recommendations
     
 
@@ -462,6 +487,8 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
     
 -   SAP SuccessFactors — Employment Information API: employment status and position details (read)
     
+-   SAP SuccessFactors — Time Off API: approved time-off/leave records with dates and durations for conflict detection (read)
+    
 
 **Tools or connectors invoked:**
 
@@ -474,6 +501,8 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
 -   `get_employee_skills` (SuccessFactors Skills Management MCP tool): retrieves skill tags and proficiency per employee — read-only
     
 -   `get_employee_profile` (SuccessFactors Employee Profile MCP tool): retrieves employee profile and employment info — read-only
+    
+-   `get_employee_timeoff` (SuccessFactors Time Off MCP tool): retrieves approved time-off/leave records (dates, durations, leave types) for conflict detection against project timelines — read-only
     
 -   `create_resource_assignment` (S/4HANA Resource Assignment Source MCP tool): creates a confirmed assignment in S/4HANA Cloud — **write / high-risk** — only called after explicit human confirmation
     
@@ -488,7 +517,9 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
     
 -   If no suitable candidates are found, the agent must communicate this clearly rather than recommending a poor fit
     
--   Confidence threshold: if fewer than 2 of the 3 criteria (availability, skills, profile) are available for a candidate, the agent must flag the recommendation as low-confidence
+-   If a candidate has approved time-off overlapping the project timeline, the agent must exclude them from the recommendation list or clearly flag the conflict — never recommend an employee with a leave conflict as fully available
+    
+-   Confidence threshold: if fewer than 2 of the 4 criteria (availability, skills, profile, time-off clearance) are available for a candidate, the agent must flag the recommendation as low-confidence
     
 
 * * *
@@ -525,6 +556,8 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
     
 -   **Human-in-the-loop**: 100% of assignment executions in test scenarios require and record explicit confirmation
     
+-   **Time-off filtering**: 100% of candidates with approved time-off overlapping the project timeline are excluded or flagged in test scenarios
+    
 
 * * *
 
@@ -552,15 +585,15 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
 -   **Log on miss**: `M2.missed: no open resource requirements found or API error for project {project_id}; user notified`
     
 
-### M3: Employee Availability and Skills Queried
+### M3: Employee Availability, Skills, and Time-Off Queried
 
--   **Description**: The agent has retrieved employee availability from S/4HANA Cloud and skills/profile data from SuccessFactors for the candidate pool.
+-   **Description**: The agent has retrieved employee availability from S/4HANA Cloud, skills/profile data from SuccessFactors, and time-off/leave records from SuccessFactors for the candidate pool. Employees with time-off conflicts during the project timeline have been filtered out.
     
--   **Achieved when**: The agent has results from both the Workforce Daily Availability API and at least one of the SuccessFactors APIs (Skills Management or Employee Profile).
+-   **Achieved when**: The agent has results from the Workforce Daily Availability API, at least one of the SuccessFactors APIs (Skills Management or Employee Profile), and the Time Off API. Employees with leave conflicts are excluded.
     
--   **Log on achievement**: `M3.achieved: employee data retrieved — {count} employees with availability; SuccessFactors skills data: {available|partial|unavailable}`
+-   **Log on achievement**: `M3.achieved: employee data retrieved — {count} employees with availability; SuccessFactors skills data: {available|partial|unavailable}; time-off data: {available|partial|unavailable}; {filtered_count} employees excluded due to time-off conflicts`
     
--   **Log on miss**: `M3.missed: employee availability or skills data retrieval failed; agent proceeding with partial data — user notified`
+-   **Log on miss**: `M3.missed: employee availability, skills, or time-off data retrieval failed; agent proceeding with partial data — user notified`
     
 
 ### M4: Best-Fit Candidates Proposed
@@ -593,7 +626,7 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
 
 -   **MCP translation file quality**: Since no pre-deployed MCP servers exist for the required APIs, translation files must be generated from EDMX/OpenAPI specs. Incomplete or inaccurate translations could reduce tool reliability.
     
--   **Cross-system data consistency**: Availability data resides in S/4HANA Cloud while skills data resides in SuccessFactors. If employee IDs or keys do not align between systems, cross-referencing may fail or produce incorrect matches.
+-   **Cross-system data consistency**: Availability data resides in S/4HANA Cloud while skills and time-off data reside in SuccessFactors. If employee IDs or keys do not align between systems, cross-referencing may fail or produce incorrect matches. The agent must reconcile workforce daily availability with approved time-off periods to avoid conflicts.
     
 -   **LLM reasoning quality**: The accuracy of candidate recommendations depends on the quality of the AI model's reasoning. Edge cases (e.g., partial availability, overlapping project demands) may produce suboptimal suggestions.
     
@@ -615,9 +648,9 @@ Jordan is a 44-year-old resource manager who owns the workforce pool across mult
     
 -   Live or sandbox access to SAP S/4HANA Cloud OData APIs (Project Demand, Workforce Availability, Resource Assignment Source)
     
--   Live or sandbox access to SAP SuccessFactors OData APIs (Employee Profile, Skills Management, Employment Information)
+-   Live or sandbox access to SAP SuccessFactors OData APIs (Employee Profile, Skills Management, Employment Information, Time Off)
     
--   MCP translation files generated from EDMX/OpenAPI specifications for all 6 APIs
+-   MCP translation files generated from EDMX/OpenAPI specifications for all 7 APIs
     
 
 * * *
