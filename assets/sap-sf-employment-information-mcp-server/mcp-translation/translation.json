@@ -5,10 +5,10 @@
     "type": "edmx"
   },
   "serverInfo": {
-    "name": "sap.mcp/sfodata",
-    "title": "sfodata",
+    "name": "customer.build/sap-sf-employment-information-mcp-server",
+    "title": "SAP SuccessFactors Employment Information MCP Server",
     "version": "1.0.0",
-    "description": "MCP server for the sfodata service."
+    "description": "MCP server for the SAP SuccessFactors EC Employment Information API."
   },
   "tools": [
     {

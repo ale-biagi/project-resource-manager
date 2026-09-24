@@ -168,7 +168,7 @@ class TestAgentMCPIntegration:
 
         requires = asset.get("requires", [])
         mcp_requires = [r for r in requires if r.get("kind") == "mcp-server"]
-        assert len(mcp_requires) == 6, f"Expected 6 MCP server requires, got {len(mcp_requires)}"
+        assert len(mcp_requires) == 7, f"Expected 7 MCP server requires, got {len(mcp_requires)}"
 
     def test_asset_yaml_ordids_reference_solution(self):
         """Verify MCP server ORD IDs in asset.yaml follow the solution naming convention."""

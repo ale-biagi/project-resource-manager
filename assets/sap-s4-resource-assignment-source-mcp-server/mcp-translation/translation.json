@@ -5,10 +5,10 @@
     "type": "edmx"
   },
   "serverInfo": {
-    "name": "sap.mcp/sap_self",
-    "title": "sap_self",
+    "name": "customer.build/sap-s4-resource-assignment-source-mcp-server",
+    "title": "SAP S/4HANA Resource Assignment Source MCP Server",
     "version": "1.0.0",
-    "description": "MCP server for the sap_self service."
+    "description": "MCP server for the SAP S/4HANA Project Demand Source of Supply API."
   },
   "tools": [
     {

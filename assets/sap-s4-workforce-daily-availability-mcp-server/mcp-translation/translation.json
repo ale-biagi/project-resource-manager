@@ -5,10 +5,10 @@
     "type": "edmx"
   },
   "serverInfo": {
-    "name": "sap.mcp/shcm_api_manage_wf_availability",
-    "title": "shcm_api_manage_wf_availability",
+    "name": "customer.build/sap-s4-workforce-daily-availability-mcp-server",
+    "title": "SAP S/4HANA Workforce Daily Availability MCP Server",
     "version": "1.0.0",
-    "description": "MCP server for the shcm_api_manage_wf_availability service."
+    "description": "MCP server for the SAP S/4HANA Manage Workforce Availability API."
   },
   "tools": [
     {

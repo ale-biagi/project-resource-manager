@@ -5,10 +5,10 @@
     "type": "edmx"
   },
   "serverInfo": {
-    "name": "sap.mcp/cds_api_projectdemand",
-    "title": "cds_api_projectdemand",
+    "name": "customer.build/sap-s4-project-demand-mcp-server",
+    "title": "SAP S/4HANA Project Demand MCP Server",
     "version": "1.0.0",
-    "description": "MCP server for the cds_api_projectdemand service."
+    "description": "MCP server for the SAP S/4HANA Project Demand API."
   },
   "tools": [
     {
