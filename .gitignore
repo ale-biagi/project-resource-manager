@@ -1,0 +1,28 @@
+# Deployment artifacts
+deploy_result.json
+.build
+
+# IDE and tooling
+opencode.json
+.vscode/
+.idea/
+
+# Development artifacts
+api-discovery-results.md
+solution.yaml.bak
+coverage.json
+
+# Specification (design-time only, not needed at runtime)
+specification/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
