@@ -2111,8 +2111,8 @@
       }
     },
     {
-      "name": "list_to_resourcerequest_in_a_projectdemandresource_for_cds_api_projectdemand",
-      "title": "list_to_ResourceRequest_in_A_ProjectDemandResource_for_cds_api_projectdemand",
+      "name": "list_resourcerequest_in_projdemand_resource",
+      "title": "list_ResourceRequest_in_ProjDemand_Resource",
       "description": "Navigate from A_ProjectDemandResource to related A_ProjectDemandResourceRequest_Type entities via the 'to_ResourceRequest' navigation property. Supports OData query options for filtering, sorting, paging, expanding, counting, and selecting specific properties. If the structure of the entity is not known, call get_metadata_cds_api_projectdemand tool first to get the metadata.",
       "odataType": {
         "entitySet": {
@@ -2195,8 +2195,8 @@
       }
     },
     {
-      "name": "create_to_resourcerequest_in_a_projectdemandresource_for_cds_api_projectdemand",
-      "title": "create_to_ResourceRequest_in_A_ProjectDemandResource_for_cds_api_projectdemand",
+      "name": "create_resourcerequest_in_projdemand_resource",
+      "title": "create_ResourceRequest_in_ProjDemand_Resource",
       "description": "Create a new A_ProjectDemandResourceRequest_Type entity via the 'to_ResourceRequest' navigation property of A_ProjectDemandResource. Provide the parent key and the properties of the new entity. If the structure is unknown, call get_metadata_cds_api_projectdemand tool first.",
       "odataType": {
         "entitySet": {
@@ -2292,8 +2292,8 @@
       }
     },
     {
-      "name": "count_to_resourcerequest_in_a_projectdemandresource_for_cds_api_projectdemand",
-      "title": "count_to_ResourceRequest_in_A_ProjectDemandResource_for_cds_api_projectdemand",
+      "name": "count_resourcerequest_in_projdemand_resource",
+      "title": "count_ResourceRequest_in_ProjDemand_Resource",
       "description": "Count A_ProjectDemandResourceRequest_Type entities accessible via the 'to_ResourceRequest' navigation property of A_ProjectDemandResource in the cds_api_projectdemand service. Returns the total number of matching entities.",
       "odataType": {
         "entitySet": {
@@ -2355,8 +2355,8 @@
       }
     },
     {
-      "name": "list_to_resourceassignment_in_a_projectdemandresource_for_cds_api_projectdemand",
-      "title": "list_to_ResourceAssignment_in_A_ProjectDemandResource_for_cds_api_projectdemand",
+      "name": "list_resourceassignment_in_projdemand_resource",
+      "title": "list_ResourceAssignment_in_ProjDemand_Resource",
       "description": "Navigate from A_ProjectDemandResource to related A_ProjDmndResourceAssignment_Type entities via the 'to_ResourceAssignment' navigation property. Supports OData query options for filtering, sorting, paging, expanding, counting, and selecting specific properties. If the structure of the entity is not known, call get_metadata_cds_api_projectdemand tool first to get the metadata.",
       "odataType": {
         "entitySet": {
@@ -2439,8 +2439,8 @@
       }
     },
     {
-      "name": "create_to_resourceassignment_in_a_projectdemandresource_for_cds_api_projectdemand",
-      "title": "create_to_ResourceAssignment_in_A_ProjectDemandResource_for_cds_api_projectdemand",
+      "name": "create_resourceassignment_in_projdemand_resource",
+      "title": "create_ResourceAssignment_in_ProjDemand_Resource",
       "description": "Create a new A_ProjDmndResourceAssignment_Type entity via the 'to_ResourceAssignment' navigation property of A_ProjectDemandResource. Provide the parent key and the properties of the new entity. If the structure is unknown, call get_metadata_cds_api_projectdemand tool first.",
       "odataType": {
         "entitySet": {
@@ -2540,8 +2540,8 @@
       }
     },
     {
-      "name": "count_to_resourceassignment_in_a_projectdemandresource_for_cds_api_projectdemand",
-      "title": "count_to_ResourceAssignment_in_A_ProjectDemandResource_for_cds_api_projectdemand",
+      "name": "count_resourceassignment_in_projdemand_resource",
+      "title": "count_ResourceAssignment_in_ProjDemand_Resource",
       "description": "Count A_ProjDmndResourceAssignment_Type entities accessible via the 'to_ResourceAssignment' navigation property of A_ProjectDemandResource in the cds_api_projectdemand service. Returns the total number of matching entities.",
       "odataType": {
         "entitySet": {
