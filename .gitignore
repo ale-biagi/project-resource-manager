@@ -1,6 +1,5 @@
 # Deployment artifacts
 deploy_result.json
-.build
 
 # IDE and tooling
 opencode.json
