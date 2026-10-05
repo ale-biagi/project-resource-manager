@@ -1,97 +1,77 @@
-"""Unit test for retrieving employee profile from SuccessFactors (REQ-04)."""
+"""Tests confirming sap-sf-employee-profile MCP server has been intentionally removed.
+
+This server was removed to comply with the platform's 5-MCP-server limit.
+Employee profile data (education, certifications, work experience) is considered
+less critical than skills matching and time-off conflict detection for the core
+project resource management workflow.
+"""
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 
-def _load_mock_tool_response(server_slug: str, tool_name: str):
-    mock_path = Path(__file__).parent.parent / "mcp-mock.json"
-    with open(mock_path) as f:
-        mock_data = json.load(f)
-    return mock_data["servers"][server_slug]["tools"][tool_name]["mock_response"]
-
-
-def _make_mock_tool(name: str, response):
-    tool = MagicMock()
-    tool.name = name
-    tool.description = f"Mock tool: {name}"
-    tool.ainvoke = AsyncMock(return_value=json.dumps(response))
-    tool.invoke = MagicMock(return_value=json.dumps(response))
-    return tool
-
-
 class TestGetEmployeeProfile:
-    """Tests for REQ-04: Retrieve Employee Profile."""
+    """Tests confirming employee profile server removal and remaining coverage."""
 
-    def test_employee_profile_server_in_mock(self):
-        """Verify SF Employee Profile MCP server is in mcp-mock.json."""
+    def test_employee_profile_server_not_in_mock(self):
+        """Verify sap-sf-employee-profile has been removed from mcp-mock.json."""
         mock_path = Path(__file__).parent.parent / "mcp-mock.json"
         with open(mock_path) as f:
             mock_data = json.load(f)
-        assert "sap-sf-employee-profile" in mock_data["servers"]
-        server = mock_data["servers"]["sap-sf-employee-profile"]
-        assert "list_eppublicprofile_for_sfodata" in server["tools"]
-        assert "get_eppublicprofile_for_sfodata" in server["tools"]
+        assert "sap-sf-employee-profile" not in mock_data["servers"], \
+            "sap-sf-employee-profile must not be present (removed due to platform MCP limit)"
 
-    def test_public_profile_has_user_id_and_intro(self):
-        """Verify employee public profile includes user ID and introduction."""
-        response = _load_mock_tool_response(
-            "sap-sf-employee-profile",
-            "list_eppublicprofile_for_sfodata"
-        )
-        for profile in response["d"]["results"]:
-            assert "userId" in profile
-            assert "myNameText" in profile
-            assert len(profile["myNameText"]) > 0
+    def test_total_servers_is_five(self):
+        """Verify total MCP server count is exactly 5 (platform limit)."""
+        mock_path = Path(__file__).parent.parent / "mcp-mock.json"
+        with open(mock_path) as f:
+            mock_data = json.load(f)
+        assert len(mock_data["servers"]) == 5
 
-    def test_profile_introduction_is_relevant(self):
-        """Verify introduction text describes professional background."""
-        response = _load_mock_tool_response(
-            "sap-sf-employee-profile",
-            "get_eppublicprofile_for_sfodata"
-        )
-        profile = response["d"]
-        assert "introduction" in profile
-        assert len(profile["introduction"]) > 20, "Introduction should be meaningful"
+    def test_skills_server_covers_core_employee_data(self):
+        """Verify skills management server is present as the primary SF employee data source."""
+        mock_path = Path(__file__).parent.parent / "mcp-mock.json"
+        with open(mock_path) as f:
+            mock_data = json.load(f)
+        assert "sap-sf-skills-management" in mock_data["servers"]
+        server = mock_data["servers"]["sap-sf-skills-management"]
+        assert "list_skillprofile_for_sfodata" in server["tools"]
+        assert "list_ratedskillmapping_for_sfodata" in server["tools"]
+
+    def test_skills_profiles_have_employee_ids(self):
+        """Verify skill profiles contain employee identifiers."""
+        mock_path = Path(__file__).parent.parent / "mcp-mock.json"
+        with open(mock_path) as f:
+            mock_data = json.load(f)
+        profiles = mock_data["servers"]["sap-sf-skills-management"]["tools"][
+            "list_skillprofile_for_sfodata"
+        ]["mock_response"]["d"]["results"]
+        assert len(profiles) >= 2
+        for profile in profiles:
+            assert "externalCode" in profile
+            assert profile["externalCode"].startswith("EMP")
+
+    def test_time_off_server_present_as_availability_source(self):
+        """Verify time-off server is present for availability conflict detection."""
+        mock_path = Path(__file__).parent.parent / "mcp-mock.json"
+        with open(mock_path) as f:
+            mock_data = json.load(f)
+        assert "sap-sf-time-off" in mock_data["servers"]
 
     @pytest.mark.asyncio
-    async def test_get_single_profile_by_user_id(self):
-        """Test retrieving a single employee profile by user ID."""
-        response = _load_mock_tool_response(
-            "sap-sf-employee-profile",
-            "get_eppublicprofile_for_sfodata"
-        )
-        tool = _make_mock_tool("get_eppublicprofile_for_sfodata", response)
-        result = await tool.ainvoke({"userid": "EMP001"})
-        result_data = json.loads(result)
-        assert "d" in result_data
-        assert result_data["d"]["userId"] == "EMP001"
-
-    def test_certifications_in_profile_mock(self):
-        """Verify certification data is available for employees."""
+    async def test_skills_data_sufficient_for_candidate_ranking(self):
+        """Verify skills data provides enough detail for candidate scoring."""
         mock_path = Path(__file__).parent.parent / "mcp-mock.json"
         with open(mock_path) as f:
             mock_data = json.load(f)
-        server = mock_data["servers"]["sap-sf-employee-profile"]
-        assert "list_background_certificates_for_sfodata" in server["tools"]
-        certs_response = server["tools"]["list_background_certificates_for_sfodata"]["mock_response"]
-        assert len(certs_response["d"]["results"]) > 0
-        cert = certs_response["d"]["results"][0]
-        assert "name" in cert
-        assert "institution" in cert
-
-    def test_education_background_available(self):
-        """Verify education background data is available."""
-        response = _load_mock_tool_response(
-            "sap-sf-employee-profile",
-            "list_background_education_for_sfodata"
-        )
-        assert len(response["d"]["results"]) > 0
-        edu = response["d"]["results"][0]
-        assert "school" in edu
-        assert "degree" in edu
-        assert "userId" in edu
+        rated_skills = mock_data["servers"]["sap-sf-skills-management"]["tools"][
+            "list_ratedskillmapping_for_sfodata"
+        ]["mock_response"]["d"]["results"]
+        assert len(rated_skills) >= 2
+        for skill in rated_skills:
+            assert "skill" in skill
+            assert "SkillProfile_externalCode" in skill
+            assert "expectedLevel_en_US" in skill

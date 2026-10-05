@@ -153,7 +153,7 @@ class TestAgentMCPIntegration:
         assert "urllib.request.urlopen" not in content
 
     def test_asset_yaml_has_all_mcp_requires(self):
-        """Verify asset.yaml has requires entries for all 6 MCP servers."""
+        """Verify asset.yaml has requires entries for all 5 MCP servers."""
         import yaml
         asset_path = Path(__file__).parent.parent / "asset.yaml"
         assert asset_path.exists(), "asset.yaml must exist"
@@ -168,7 +168,7 @@ class TestAgentMCPIntegration:
 
         requires = asset.get("requires", [])
         mcp_requires = [r for r in requires if r.get("kind") == "mcp-server"]
-        assert len(mcp_requires) == 7, f"Expected 7 MCP server requires, got {len(mcp_requires)}"
+        assert len(mcp_requires) == 5, f"Expected 5 MCP server requires, got {len(mcp_requires)}"
 
     def test_asset_yaml_ordids_reference_solution(self):
         """Verify MCP server ORD IDs in asset.yaml follow the solution naming convention."""
@@ -191,15 +191,14 @@ class TestAgentMCPIntegration:
         assert "apiVersion: solution.sap/v1" in content
 
     def test_six_mcp_server_assets_exist(self):
-        """Verify all 6 MCP server asset directories and asset.yaml files exist."""
+        """Verify all 5 MCP server asset directories and asset.yaml files exist."""
         assets_root = Path(__file__).parent.parent.parent
         expected_mcp_servers = [
             "sap-s4-project-demand-mcp-server",
             "sap-s4-resource-assignment-source-mcp-server",
             "sap-s4-workforce-daily-availability-mcp-server",
             "sap-sf-skills-management-mcp-server",
-            "sap-sf-employee-profile-mcp-server",
-            "sap-sf-employment-information-mcp-server",
+            "sap-sf-time-off-mcp-server",
         ]
         for server_name in expected_mcp_servers:
             server_dir = assets_root / server_name

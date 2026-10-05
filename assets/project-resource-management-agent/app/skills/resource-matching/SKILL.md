@@ -14,7 +14,7 @@ Before starting, you must have:
 2. The required date window (start and end dates) from the demand
 3. Availability data retrieved from the Workforce Daily Availability tool
 4. Time-off/leave data retrieved from the SuccessFactors Time Off tool
-5. Skills and profile data from SuccessFactors tools
+5. Skills data from SuccessFactors Skills Management tool
 
 ## Step 1: Extract Demand Requirements
 
@@ -53,16 +53,13 @@ For each available employee from Step 2:
 For each remaining employee (passed Steps 2 and 3):
 1. Query SkillProfile using the employee's user ID (map from work agreement ID)
 2. If SkillProfile exists, query RatedSkillMapping to get all rated skills with proficiency levels
-3. Query EmpJob to get current job title, department, location, and employment status
-4. Query EPPublicProfile for additional context (introduction, certifications)
-5. If SkillProfile does NOT exist, flag this employee as `[Skills data unavailable]` — do NOT omit them
+3. If SkillProfile does NOT exist, flag this employee as `[Skills data unavailable]` — do NOT omit them
 
 Compile a profile per candidate:
 - Name / Employee ID
 - Available hours and percentage
 - Time-off clearance status (cleared / unavailable)
 - Skills list with proficiency levels
-- Job title and department
 - Data completeness flags
 
 ## Step 5: Score Candidates
@@ -71,18 +68,17 @@ Score each candidate (0–100) using these weights:
 
 | Criterion | Weight | How to Score |
 |-----------|--------|--------------|
-| Skills match | 40% | Count how many required skills (from demand role/activity) the candidate has, divided by total required skills x 40 |
-| Availability alignment | 25% | Availability percentage x 25 |
-| Time-off clearance | 15% | 15 if fully clear (no time-off conflicts and data confirmed), 8 if time-off data unavailable, 0 if any conflict detected |
-| Employment profile fit | 20% | Job title relevance to demand role x 20 (use 10 if partially relevant, 5 if not relevant) |
+| Skills match | 50% | Count how many required skills (from demand role/activity) the candidate has, divided by total required skills x 50 |
+| Availability alignment | 30% | Availability percentage x 30 |
+| Time-off clearance | 20% | 20 if fully clear (no time-off conflicts and data confirmed), 10 if time-off data unavailable, 0 if any conflict detected |
 
 **Confidence Levels Based on Data Completeness:**
 
 | Data Available | Confidence Level |
 |----------------|-----------------|
-| All 4 criteria (availability + time-off clearance + skills + profile) | **High** |
-| 3 of 4 criteria available | **Medium** — flag in output |
-| 2 or fewer of 4 criteria available | **Low** — flag prominently in output |
+| All 3 criteria (availability + time-off clearance + skills) | **High** |
+| 2 of 3 criteria available | **Medium** — flag in output |
+| 1 or fewer of 3 criteria available | **Low** — flag prominently in output |
 
 If fewer than 2 criteria are available for any candidate, add: `Warning: Low-confidence recommendation — [state which data is missing]`
 
@@ -99,8 +95,7 @@ Note: [X] employees were excluded due to approved time-off conflicts during the 
 **Availability:** XX hours available (XX%) during [date range]
 **Time-Off Status:** No approved time-off during project timeline / [Time-off data unavailable — availability unconfirmed]
 **Skills Match:** [list matching skills with proficiency levels]
-**Job Profile:** [Job Title], [Department], [Location]
-**Justification:** [2-3 sentences explaining why this person is a good fit — cover skills alignment, availability window, time-off clearance, and role relevance]
+**Justification:** [2-3 sentences explaining why this person is a good fit — cover skills alignment, availability window, and time-off clearance]
 
 ### Rank 2: [Employee Name] ...
 ### Rank 3: [Employee Name] ...

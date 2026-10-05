@@ -25,12 +25,6 @@ requires:
   - name: sap-sf-skills-management-mcp-server
     kind: mcp-server
     ordId: customer.build:apiResource:project-resource-mgmt-55d21.sap-sf-skills-management-mcp-server:v1
-  - name: sap-sf-employee-profile-mcp-server
-    kind: mcp-server
-    ordId: customer.build:apiResource:project-resource-mgmt-55d21.sap-sf-employee-profile-mcp-server:v1
-  - name: sap-sf-employment-information-mcp-server
-    kind: mcp-server
-    ordId: customer.build:apiResource:project-resource-mgmt-55d21.sap-sf-employment-information-mcp-server:v1
   - name: sap-sf-time-off-mcp-server
     kind: mcp-server
     ordId: customer.build:apiResource:project-resource-mgmt-55d21.sap-sf-time-off-mcp-server:v1

@@ -11,6 +11,4 @@ assets:
   - ref: ./assets/sap-s4-resource-assignment-source-mcp-server/asset.yaml
   - ref: ./assets/sap-s4-workforce-daily-availability-mcp-server/asset.yaml
   - ref: ./assets/sap-sf-skills-management-mcp-server/asset.yaml
-  - ref: ./assets/sap-sf-employee-profile-mcp-server/asset.yaml
-  - ref: ./assets/sap-sf-employment-information-mcp-server/asset.yaml
   - ref: ./assets/sap-sf-time-off-mcp-server/asset.yaml

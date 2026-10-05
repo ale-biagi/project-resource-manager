@@ -189,8 +189,8 @@ class TestAgentMockDataIntegrity:
         assert "ProjDmndRsceAssgmt" in assignment
         assert len(assignment["ProjDmndRsceAssgmt"]) > 0
 
-    def test_sf_employee_ids_in_availability_and_jobs(self):
-        """Verify SuccessFactors skill profiles reference employees from job data."""
+    def test_sf_employee_ids_in_availability_and_skills(self):
+        """Verify SuccessFactors skill profiles reference employees from availability data."""
         mock_path = Path(__file__).parent.parent / "mcp-mock.json"
         with open(mock_path) as f:
             data = json.load(f)
@@ -200,11 +200,11 @@ class TestAgentMockDataIntegrity:
         ]["mock_response"]["d"]["results"]
         skill_emp_ids = {p["externalCode"] for p in skill_profiles}
 
-        job_records = data["servers"]["sap-sf-employment-information"]["tools"][
-            "list_empjob_for_sfodata"
+        avail_records = data["servers"]["sap-s4-workforce-daily-availability"]["tools"][
+            "list_timeoverviewset_for_shcm_api_manage_wf_availability"
         ]["mock_response"]["d"]["results"]
-        job_emp_ids = {r["userId"] for r in job_records}
+        avail_emp_ids = {r["Personworkagreementexternalid"] for r in avail_records}
 
-        # Both skill profiles and job records should have EMP-prefixed IDs
+        # Both skill profiles and availability records should have EMP-prefixed IDs
         assert all(emp_id.startswith("EMP") for emp_id in skill_emp_ids)
-        assert all(emp_id.startswith("EMP") for emp_id in job_emp_ids)
+        assert all(emp_id.startswith("EMP") for emp_id in avail_emp_ids)

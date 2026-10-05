@@ -1,109 +1,99 @@
-"""Unit test for retrieving employment information from SuccessFactors (REQ-04)."""
+"""Tests confirming sap-sf-employment-information MCP server has been intentionally removed.
+
+This server was removed to comply with the platform's 5-MCP-server limit.
+Employment information data (job title, department, location) is considered
+less critical than skills matching and time-off conflict detection for the core
+project resource management workflow.
+"""
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 
-def _load_mock_tool_response(server_slug: str, tool_name: str):
-    mock_path = Path(__file__).parent.parent / "mcp-mock.json"
-    with open(mock_path) as f:
-        mock_data = json.load(f)
-    return mock_data["servers"][server_slug]["tools"][tool_name]["mock_response"]
-
-
-def _make_mock_tool(name: str, response):
-    tool = MagicMock()
-    tool.name = name
-    tool.description = f"Mock tool: {name}"
-    tool.ainvoke = AsyncMock(return_value=json.dumps(response))
-    tool.invoke = MagicMock(return_value=json.dumps(response))
-    return tool
-
-
 class TestGetEmploymentInfo:
-    """Tests for REQ-04: Retrieve Employment Information."""
+    """Tests confirming employment information server removal and remaining coverage."""
 
-    def test_employment_info_server_in_mock(self):
-        """Verify SF Employment Information MCP server is in mcp-mock.json."""
+    def test_employment_info_server_not_in_mock(self):
+        """Verify sap-sf-employment-information has been removed from mcp-mock.json."""
         mock_path = Path(__file__).parent.parent / "mcp-mock.json"
         with open(mock_path) as f:
             mock_data = json.load(f)
-        assert "sap-sf-employment-information" in mock_data["servers"]
-        server = mock_data["servers"]["sap-sf-employment-information"]
-        assert "list_empjob_for_sfodata" in server["tools"]
-        assert "list_empemployment_for_sfodata" in server["tools"]
+        assert "sap-sf-employment-information" not in mock_data["servers"], \
+            "sap-sf-employment-information must not be present (removed due to platform MCP limit)"
 
-    def test_emp_job_has_required_fields(self):
-        """Verify EmpJob records have title, department, location and status."""
-        response = _load_mock_tool_response(
-            "sap-sf-employment-information",
-            "list_empjob_for_sfodata"
-        )
-        for emp in response["d"]["results"]:
-            assert "userId" in emp
-            assert "jobTitle" in emp, "Job title is required"
-            assert "department" in emp, "Department is required"
-            assert "location" in emp, "Location is required"
-            assert "emplStatus" in emp, "Employment status is required"
+    def test_total_servers_is_five(self):
+        """Verify total MCP server count is exactly 5 (platform limit)."""
+        mock_path = Path(__file__).parent.parent / "mcp-mock.json"
+        with open(mock_path) as f:
+            mock_data = json.load(f)
+        assert len(mock_data["servers"]) == 5
 
-    def test_active_employees_have_status_a(self):
-        """Verify active employees have employment status 'A'."""
-        response = _load_mock_tool_response(
-            "sap-sf-employment-information",
-            "list_empjob_for_sfodata"
-        )
-        for emp in response["d"]["results"]:
-            assert emp["emplStatus"] == "A", f"Employee {emp['userId']} should be active"
+    def test_availability_server_covers_workforce_data(self):
+        """Verify workforce availability server is present as the primary capacity source."""
+        mock_path = Path(__file__).parent.parent / "mcp-mock.json"
+        with open(mock_path) as f:
+            mock_data = json.load(f)
+        assert "sap-s4-workforce-daily-availability" in mock_data["servers"]
+        server = mock_data["servers"]["sap-s4-workforce-daily-availability"]
+        assert "list_timeoverviewset_for_shcm_api_manage_wf_availability" in server["tools"]
 
-    def test_emp_job_has_standard_hours(self):
-        """Verify employment records include standard weekly hours for capacity calculation."""
-        response = _load_mock_tool_response(
-            "sap-sf-employment-information",
-            "list_empjob_for_sfodata"
-        )
-        for emp in response["d"]["results"]:
-            assert "standardHours" in emp
-            assert "fte" in emp
-            assert float(emp["standardHours"]) > 0
+    def test_availability_records_have_employee_identifiers(self):
+        """Verify availability records contain employee work agreement IDs."""
+        mock_path = Path(__file__).parent.parent / "mcp-mock.json"
+        with open(mock_path) as f:
+            mock_data = json.load(f)
+        records = mock_data["servers"]["sap-s4-workforce-daily-availability"]["tools"][
+            "list_timeoverviewset_for_shcm_api_manage_wf_availability"
+        ]["mock_response"]["d"]["results"]
+        assert len(records) >= 2
+        for record in records:
+            assert "Personworkagreementexternalid" in record
+            assert "Plannedworkinghours" in record
+            assert "Absencehours" in record
+
+    def test_availability_includes_partial_availability_employee(self):
+        """Verify mock data includes an employee with partial availability."""
+        mock_path = Path(__file__).parent.parent / "mcp-mock.json"
+        with open(mock_path) as f:
+            mock_data = json.load(f)
+        records = mock_data["servers"]["sap-s4-workforce-daily-availability"]["tools"][
+            "list_timeoverviewset_for_shcm_api_manage_wf_availability"
+        ]["mock_response"]["d"]["results"]
+        partial = [r for r in records if float(r["Absencehours"]) > 0]
+        assert len(partial) >= 1, "At least one employee should have partial absence"
 
     @pytest.mark.asyncio
-    async def test_filter_emp_job_by_user_id(self):
-        """Test filtering job info by user ID."""
-        response = _load_mock_tool_response(
-            "sap-sf-employment-information",
-            "list_empjob_for_sfodata"
-        )
-        tool = _make_mock_tool("list_empjob_for_sfodata", response)
-        result = await tool.ainvoke({
-            "filter": "userId eq 'EMP001' and emplStatus eq 'A'",
-            "top": "1"
-        })
-        result_data = json.loads(result)
-        assert "d" in result_data
+    async def test_skills_and_availability_sufficient_for_scoring(self):
+        """Verify the remaining 3-criteria scoring model has all necessary data."""
+        mock_path = Path(__file__).parent.parent / "mcp-mock.json"
+        with open(mock_path) as f:
+            mock_data = json.load(f)
 
-    def test_multiple_employees_in_response(self):
-        """Verify response includes data for multiple employees."""
-        response = _load_mock_tool_response(
-            "sap-sf-employment-information",
-            "list_empjob_for_sfodata"
-        )
-        results = response["d"]["results"]
-        assert len(results) >= 2
+        # Criteria 1: Skills (50%)
+        assert "sap-sf-skills-management" in mock_data["servers"]
+        assert "list_ratedskillmapping_for_sfodata" in \
+            mock_data["servers"]["sap-sf-skills-management"]["tools"]
 
-        user_ids = {emp["userId"] for emp in results}
-        assert len(user_ids) >= 2, "Should have data for multiple distinct employees"
+        # Criteria 2: Availability (30%)
+        assert "sap-s4-workforce-daily-availability" in mock_data["servers"]
+        assert "list_timeoverviewset_for_shcm_api_manage_wf_availability" in \
+            mock_data["servers"]["sap-s4-workforce-daily-availability"]["tools"]
 
-    def test_partial_fte_employee_present(self):
-        """Verify that partial FTE employees are represented in mock data."""
-        response = _load_mock_tool_response(
-            "sap-sf-employment-information",
-            "list_empjob_for_sfodata"
-        )
-        # EMP003 should have 0.8 FTE
-        emp003 = [e for e in response["d"]["results"] if e["userId"] == "EMP003"]
-        assert len(emp003) > 0
-        assert float(emp003[0]["fte"]) < 1.0, "EMP003 should be part-time"
+        # Criteria 3: Time-off clearance (20%)
+        assert "sap-sf-time-off" in mock_data["servers"]
+        assert "list_employeetime_for_sfodata" in \
+            mock_data["servers"]["sap-sf-time-off"]["tools"]
+
+    def test_multiple_employees_in_availability_data(self):
+        """Verify availability data covers multiple distinct employees."""
+        mock_path = Path(__file__).parent.parent / "mcp-mock.json"
+        with open(mock_path) as f:
+            mock_data = json.load(f)
+        records = mock_data["servers"]["sap-s4-workforce-daily-availability"]["tools"][
+            "list_timeoverviewset_for_shcm_api_manage_wf_availability"
+        ]["mock_response"]["d"]["results"]
+        emp_ids = {r["Personworkagreementexternalid"] for r in records}
+        assert len(emp_ids) >= 2, "Should have data for at least 2 distinct employees"
